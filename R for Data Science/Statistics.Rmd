@@ -1,0 +1,48 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+gapminder_clean <- read_csv("gapminder_clean.csv")
+gapminder_clean.filtered <- gapminder_clean %>% 
+  filter(Year == 1962)
+```
+
+```{r}
+colnames(gapminder_clean.filtered)
+```
+
+
+```{r}
+results <- list()
+```
+
+```{r}
+gapminder_clean.filtered %>% ggplot(aes(x = `CO2 emissions (metric tons per capita)`, y = gdpPercap)) + 
+  geom_point() + 
+  scale_x_log10() + 
+  scale_y_log10() + 
+  geom_smooth(method = lm)
+```
+
+```{r}
+results$cor <- cor(gapminder_clean.filtered$`CO2 emissions (metric tons per capita)`, gapminder_clean.filtered$gdpPercap, 
+    use = "complete.obs")
+```
+
+The result is `r results$cor`
+
+
+```{r}
+results$model <- gapminder_clean.filtered %>% lm(gdpPercap ~ `CO2 emissions (metric tons per capita)`, data = .)
+summary(results$model)
+```
+
+
+
