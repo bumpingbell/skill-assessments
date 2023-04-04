@@ -16,7 +16,7 @@ Q5: What editor did you use and what was the command to save your file changes?
 A5: nano; `^O`
 
 Q6. What is the error?
-A6: sudouser@ec2-3-86-35-70.compute-1.amazonaws.com: Permission denied (publickey).
+A6: `sudouser@ec2-3-86-35-70.compute-1.amazonaws.com: Permission denied (publickey).`
 
 Q7. What was the solution?
 A7: 
@@ -39,10 +39,10 @@ Q11. What is the output of `mamba -V`
 A11: conda 23.1.0
 
 Q12. What is the output of `which python`
-A12: /home/serveruser/mambaforge/envs/py27/bin/python
+A12: `/home/serveruser/mambaforge/envs/py27/bin/python`
 
 Q13. What is the output of `which python` now?
-A13: /home/serveruser/mambaforge/bin/python
+A13: `/home/serveruser/mambaforge/bin/python`
 
 Q14. What is the output of `salmon -h`?
 A14:
