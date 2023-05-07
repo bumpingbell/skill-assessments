@@ -1,48 +1,289 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "R for Data Science Skills Assessment"
+output:
+  html_notebook: 
+    toc: yes
+    toc_float: yes
 ---
 
+> In this HTML document, we explored the *Gapminder* dataset and generated the following analyses and report:
+
+## Preparation
+
 ```{r}
-library(tidyverse)
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(plotly)
+  library(multcomp)
+  library(DT)
+})
 ```
 
+We first read in the data
 
 ```{r}
-gapminder_clean <- read_csv("gapminder_clean.csv")
+gapminder_clean <- read_csv("gapminder_clean.csv", show_col_types = FALSE)
+```
+
+These are the column names to the data table:
+
+```{r}
+colnames(dplyr::select(gapminder_clean, -"...1"))
+```
+
+## CO2 Emissions and GDP Per Capita
+
+### Year 1962
+
+> Instructions: Filter the data to include only rows where `Year` is `1962` and then make a scatter plot comparing `CO2 emissions (metric tons per capita)` and `gdpPercap` for the filtered data.
+
+We started by filtering the dataset to `Year == 1962`:
+
+```{r}
 gapminder_clean.filtered <- gapminder_clean %>% 
   filter(Year == 1962)
 ```
 
-```{r}
-colnames(gapminder_clean.filtered)
-```
-
+The following is a scatter plot of CO2 emissions-gdpPercap in year 1962, with x = CO2 emissions, and y = gdpPercap. By observation, the data fits a linear model, so we also plotted it on the diagram:
 
 ```{r}
-results <- list()
-```
-
-```{r}
-gapminder_clean.filtered %>% ggplot(aes(x = `CO2 emissions (metric tons per capita)`, y = gdpPercap)) + 
-  geom_point() + 
+plot <- gapminder_clean.filtered %>% 
+  ggplot(aes(x = `CO2 emissions (metric tons per capita)`, 
+             y = gdpPercap)) + 
+  geom_point(na.rm = TRUE) + 
   scale_x_log10() + 
   scale_y_log10() + 
-  geom_smooth(method = lm)
+  geom_smooth(method = "lm", na.rm = TRUE)
+ggplotly(plot, height = 350, width = 600)
+```
+
+> Instructions: On the filtered data, calculate the correlation of `CO2 emissions (metric tons per capita)` and `gdpPercap`. What is the correlation and associated p value?
+
+To determine the *Pearson correlation coefficient*, we should a priori ensure the data is normally distributed. This is implemented by performing the *Shapiro-Wilk normality test* on our x's and y's. (A p-value \< 0.05 indicates that our data fit a normal distribution).
+
+```{r}
+shapiro.test(gapminder_clean.filtered$`CO2 emissions (metric tons per capita)`)
+shapiro.test(gapminder_clean.filtered$gdpPercap)
+```
+
+Both x's and y's fit a normal distribution. Thus, a *Pearson correlation coefficient* could be calculated. Otherwise, a rank-based correlation test such as the Spearman correlation test should be used.
+
+```{r}
+cor <- cor.test(
+  x = gapminder_clean.filtered$`CO2 emissions (metric tons per capita)`,
+  y = gapminder_clean.filtered$gdpPercap, 
+  method="pearson", 
+  use = "complete.obs")
+cor
+```
+
+> Findings: The `CO2 emissions (metric tons per capita)` and `gdpPercap` are positively correlated. The *Pearson correlation coefficient* is `r cor$estimate`, which means that as GDP per capital rises, so does CO2 emission, and vice versa. The p-value is `r cor$p.value`, which negates the null hypothesis that the relationship is a result of pure chance.
+
+### Year of the strongest correlation
+
+> Instructions: On the unfiltered data, answer "In what year is the correlation between `'CO2 emissions (metric tons per capita)'` and `gdpPercap` the strongest?" Filter the dataset to that year for the next step\...
+
+We grouped the dataset by year, calculating the *Pearson correlation coefficient* between `CO2 emissions` and `gdpPercap` of each. The results were visualized by a line plot.
+
+```{r}
+gapminder_clean.cor_by_year <- gapminder_clean %>% 
+  group_by(Year) %>% 
+  summarize(cor = cor(`CO2 emissions (metric tons per capita)`, gdpPercap, use = "complete.obs")) %>% 
+  arrange(desc(cor))
+plot <- gapminder_clean.cor_by_year %>% 
+  ggplot(aes(x = Year, y = cor)) + 
+  geom_line() + 
+  geom_point()
+ggplotly(plot, height = 350, width = 600)
+```
+
+> Findings: Year `r gapminder_clean.cor_by_year[[1,1]]` witnessed the strongest correlation of `CO2 emissions` and `gdpPercap`
+
+We then filtered the dataset accordingly:
+
+```{r}
+gapminder_clean.filtered <- gapminder_clean %>% 
+  filter(Year== gapminder_clean.cor_by_year[[1,1]])
+```
+
+> Instructions: Using `plotly`, create an interactive scatter plot comparing `'CO2 emissions (metric tons per capita)'` and `gdpPercap`, where the point size is determined by `pop` (population) and the color is determined by the `continent`. You can easily convert any `ggplot` plot to a `plotly` plot using the `ggplotly()` command.
+
+The following are the desired plots:
+
+```{r}
+plot <- gapminder_clean.filtered %>%
+  ggplot(aes(x = `CO2 emissions (metric tons per capita)`, y = gdpPercap)) +
+  geom_point(aes(color = continent, size = pop, text = paste0("country: ", `Country Name`)), na.rm = TRUE) +
+  scale_x_log10() +
+  scale_y_log10()
+plot
+ggplotly(plot, height = 350, width = 600)
+```
+
+## Continent and Energy Use
+
+> Instructions: What is the relationship between `continent` and `'Energy use (kg of oil equivalent per capita)'`? (stats test needed)
+
+We visualized the data by plotting `continent` against `Energy use` on a boxplot:
+
+```{r}
+plot <- gapminder_clean %>% 
+  subset(!is.na(continent)) %>% 
+  ggplot(aes(x = continent, y = `Energy use (kg of oil equivalent per capita)`, fill = continent)) +
+  geom_boxplot(na.rm = TRUE)
+ggplotly(plot, height = 350, width = 600)
+```
+
+Since we are manipulating over quantitative data (`Energy use`) among multiple groups (`continent`), it is worth exploring whether the outcome variable (`Energy use`) differ among these groups or not. There are more than 2 groups being compared, with only one outcome variable. Thus, an *ANOVA* is suitable for our case.
+
+We perform an *ANOVA* with the following code:
+
+```{r}
+res_aov <- aov(`Energy use (kg of oil equivalent per capita)` ~ continent, data = gapminder_clean)
+summary(res_aov)
+```
+
+The *ANOVA* gave a p-value of `r summary(res_aov)[[1]][1, 5]`, which sucessfully negated the null hypothesis that there is no difference among group means.
+
+To find out exactly which groups are different from others, it's useful to conduct a *post hoc test*. A *Tukey HSD* test is commonly used to compare all groups to each other (i.e. all possible comparisons of 2 groups), sparing the need to set a reference group.
+
+```{r}
+res_tukey <- TukeyHSD(res_aov, conf.level = 0.95)
+res_tukey
+par(mar = c(5.1, 8.1, 4.1, 0.1)) # set margins of plot
+plot(res_tukey,
+     las = 1)  # labels horizontal to the axes
+```
+
+The plot above depicts the 95% confidence interval (95% CI) of the differences in mean levels of continents. According to the plot, the 95% CI of `Asia-Americas` and `Oceania-Europe` overlapped with 0, meaning that we couldn't effectively tell that these groups have differences between the former and the latter country. All other groups had significant differences.
+
+These are the statistical values from the *Tukey HSD* *test*:
+
+```{r}
+data_frame(Group = row.names(res_tukey$continent), 
+           as_data_frame(res_tukey$continent)) %>% 
+  arrange(desc(`p adj`)) %>% 
+  mutate(across(where(is.numeric), round, 4)) %>% 
+  datatable()
+```
+
+> Findings: There is significant difference between the group means of `'Energy use (kg of oil equivalent per capita)'` across the `continents`. However, a pairwise post-hoc test reveals that it's not the case between `Asia-Americas` and `Oceania-Europe`.
+
+## European and Asian Imports of Goods and Services
+
+> Instructions: Is there a significant difference between Europe and Asia with respect to `'Imports of goods and services (% of GDP)'` in the years after 1990? (stats test needed)
+
+We filtered the dataset according to the instructions and drew a boxplot:
+
+```{r}
+filtered.gapminder_clean <- gapminder_clean %>% 
+  filter(continent %in% c("Europe", "Asia"), Year >= 1990)
 ```
 
 ```{r}
-results$cor <- cor(gapminder_clean.filtered$`CO2 emissions (metric tons per capita)`, gapminder_clean.filtered$gdpPercap, 
-    use = "complete.obs")
+plot <- filtered.gapminder_clean %>% 
+  ggplot(aes(x = continent, y = `Imports of goods and services (% of GDP)`, fill = continent)) +
+  geom_boxplot(na.rm = TRUE)
+ggplotly(plot, height = 350, width = 600)
 ```
 
-The result is `r results$cor`
-
+As can be seen in the boxplot and the following table, `Asia` has a slightly higher mean of `Imports of goods and services` compared to `Europe`.
 
 ```{r}
-results$model <- gapminder_clean.filtered %>% lm(gdpPercap ~ `CO2 emissions (metric tons per capita)`, data = .)
-summary(results$model)
+filtered.gapminder_clean %>% group_by(continent) %>% 
+  summarize(mean = mean(`Imports of goods and services (% of GDP)`, na.rm = TRUE), 
+            IQR = IQR(`Imports of goods and services (% of GDP)`, na.rm = TRUE)) %>% 
+  mutate(across(where(is.numeric), round, 4)) %>% 
+  datatable()
 ```
 
+Since we are comparing two groups of quantitative data, a *two-sample t-test* could be useful. This test holds the null hypothesis that the mean of `Imports of goods and services` does not differ between the two groups.
 
+```{r}
+res_t <- t.test(formula = `Imports of goods and services (% of GDP)` ~ continent, 
+                data = filtered.gapminder_clean)
+res_t
+```
 
+> Findings: The two-sample t-test gives a p-value of `r res_t$p.value`, which is \>0.05, meaning that the mean of `Imports of goods and services` is not statistically different between `Europe` and `Asia`.
+
+## Countries of Highest Population Density
+
+> Instructions: What is the country (or countries) that has the highest `'Population density (people per sq. km of land area)'` across all years? (i.e., which country has the highest average ranking in this category across each time point in the dataset?)
+
+To answer this question, the mean of population density over the years is calculated for each country. In the following table, the countries are ordered by the calculated mean (rounded to the nearsert integer), in descending order.
+
+```{r}
+countries_of_highest_density <- gapminder_clean %>% 
+  dplyr::select(Year, `Country Name`, `Population density (people per sq. km of land area)`) %>% 
+  spread(key = Year, value = `Population density (people per sq. km of land area)`) %>% 
+  bind_cols(., Mean = rowMeans(dplyr::select(., -`Country Name`))) %>% 
+  arrange(desc(Mean)) %>% 
+  relocate(Mean, .after = `Country Name`)
+countries_of_highest_density %>% mutate(across(where(is.numeric), round, 0)) %>% datatable(options = list(scrollX = TRUE))
+```
+
+From the table above, `r head(countries_of_highest_density)[["Country Name"]]` have the top six highest average population density. We could further draw a line plot to observe the changes of population density in these countries over years.
+
+```{r}
+plot <- gapminder_clean %>% 
+  filter(`Country Name` %in% head(countries_of_highest_density)$`Country Name`) %>% 
+  ggplot(aes(x = Year, y = `Population density (people per sq. km of land area)`, color = `Country Name`)) +
+  geom_line(na.rm = TRUE) + 
+  geom_point(na.rm = TRUE) + 
+  theme(legend.position = "none") 
+ggplotly(plot, height = 350, width = 600)
+```
+
+> Findings: `r head(countries_of_highest_density, 2)[["Country Name"]]` are the top 2 in average `Population density (people per sq. km of land area)` across all years.
+
+## Countries of Greatest Life Expectancy Increase
+
+> Instructions: What country (or countries) has shown the greatest increase in 'Life expectancy at birth, total (years)' between 1962 and 2007?
+
+To answer the question, we first transform the table into `Country name` x `Year`, and subtract the whole table by value of `Life expectancy at birth, total (years)` in 1962.
+
+```{r}
+selected_col.gapminder_clean <- gapminder_clean %>%
+  dplyr::select(Year, `Country Name`, `Life expectancy at birth, total (years)`) %>%
+  spread(key = `Year`, value = `Life expectancy at birth, total (years)`)
+
+selected_col.gapminder_clean <- data_frame(
+  `Country Name` = selected_col.gapminder_clean$`Country Name`,
+  dplyr::select(selected_col.gapminder_clean, -`Country Name`) - selected_col.gapminder_clean$`1962` # Subtract the whole table by value in 1962
+) %>%
+  gather(-`Country Name`, key = Year, value = `Life expectancy at birth, total (years)`)
+```
+
+The table below shows the difference of `Life expectancy at birth, total (years)` between 2007 and 1962, arranged in descending order, of each country:
+
+```{r}
+countries_of_greatest_life_expectancy_increase <- selected_col.gapminder_clean %>% 
+  dplyr::select(Year, `Country Name`, `Life expectancy at birth, total (years)`) %>% 
+  spread(key = `Year`, value = `Life expectancy at birth, total (years)`) %>% 
+  dplyr::select(`Country Name`, `Difference between 2007 and 1962` = `2007`) %>% 
+  mutate(across(where(is.numeric), round, 4)) %>% 
+  arrange(desc(`Difference between 2007 and 1962`))
+countries_of_greatest_life_expectancy_increase %>% datatable()
+```
+
+The line plot shows the top six countries regarding life expectancy growth. Year 1962 of each country is set to a baseline 0 for better comparison.
+
+```{r}
+plot <- selected_col.gapminder_clean %>% 
+  subset(`Country Name` %in% head(countries_of_greatest_life_expectancy_increase)$`Country Name`) %>% 
+  ggplot(aes(x = Year, y = `Life expectancy at birth, total (years)`, color = `Country Name`)) +
+  geom_line(aes(group = `Country Name`), na.rm = TRUE) + 
+  geom_point(na.rm = TRUE) + 
+  labs(y = "Difference of life expectancy at birth, total (years)") +
+  theme(legend.position = "none")
+ggplotly(plot, height = 350, width = 600)
+```
+
+> Findings: `r countries_of_greatest_life_expectancy_increase[[1, 1]]` has shown the greatest increase in `Life expectancy at birth, total (years)` between 1962 and 2007.
+
+## Session Info
+
+```{r}
+sessionInfo()
+```
