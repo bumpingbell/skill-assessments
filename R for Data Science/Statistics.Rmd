@@ -4,11 +4,16 @@ output:
   html_notebook: 
     toc: yes
     toc_float: yes
+    code_folding: hide
 ---
 
 > In this HTML document, we explored the *Gapminder* dataset and generated the following analyses and report:
 
 ## Preparation
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
 
 ```{r}
 suppressPackageStartupMessages({
@@ -53,7 +58,8 @@ plot <- gapminder_clean.filtered %>%
   geom_point(na.rm = TRUE) + 
   scale_x_log10() + 
   scale_y_log10() + 
-  geom_smooth(method = "lm", na.rm = TRUE)
+  geom_smooth(method = "lm", na.rm = TRUE) + 
+  ggtitle("CO2 Emissions-GDP Per Capital in Year 1962")
 ggplotly(plot, height = 350, width = 600)
 ```
 
@@ -115,8 +121,8 @@ plot <- gapminder_clean.filtered %>%
   ggplot(aes(x = `CO2 emissions (metric tons per capita)`, y = gdpPercap)) +
   geom_point(aes(color = continent, size = pop, text = paste0("country: ", `Country Name`)), na.rm = TRUE) +
   scale_x_log10() +
-  scale_y_log10()
-plot
+  scale_y_log10() + 
+  ggtitle(paste0("CO2 Emissions-GDP Per Capital in Year ", gapminder_clean.cor_by_year[[1,1]]))
 ggplotly(plot, height = 350, width = 600)
 ```
 
@@ -130,7 +136,8 @@ We visualized the data by plotting `continent` against `Energy use` on a boxplot
 plot <- gapminder_clean %>% 
   subset(!is.na(continent)) %>% 
   ggplot(aes(x = continent, y = `Energy use (kg of oil equivalent per capita)`, fill = continent)) +
-  geom_boxplot(na.rm = TRUE)
+  geom_boxplot(na.rm = TRUE) + 
+  ggtitle("Contient-Energy Use")
 ggplotly(plot, height = 350, width = 600)
 ```
 
@@ -183,7 +190,8 @@ filtered.gapminder_clean <- gapminder_clean %>%
 ```{r}
 plot <- filtered.gapminder_clean %>% 
   ggplot(aes(x = continent, y = `Imports of goods and services (% of GDP)`, fill = continent)) +
-  geom_boxplot(na.rm = TRUE)
+  geom_boxplot(na.rm = TRUE) + 
+  ggtitle("European and Asian Imports of Goods and Services")
 ggplotly(plot, height = 350, width = 600)
 ```
 
@@ -231,7 +239,8 @@ plot <- gapminder_clean %>%
   ggplot(aes(x = Year, y = `Population density (people per sq. km of land area)`, color = `Country Name`)) +
   geom_line(na.rm = TRUE) + 
   geom_point(na.rm = TRUE) + 
-  theme(legend.position = "none") 
+  theme(legend.position = "none") + 
+  ggtitle("Changes of Population Density in Top Six Countries")
 ggplotly(plot, height = 350, width = 600)
 ```
 
@@ -276,7 +285,8 @@ plot <- selected_col.gapminder_clean %>%
   geom_line(aes(group = `Country Name`), na.rm = TRUE) + 
   geom_point(na.rm = TRUE) + 
   labs(y = "Difference of life expectancy at birth, total (years)") +
-  theme(legend.position = "none")
+  theme(legend.position = "none") + 
+  ggtitle("Changes of Life Expectancy Growth in Top Six Countries")
 ggplotly(plot, height = 350, width = 600)
 ```
 
