@@ -1,3 +1,5 @@
+> The `maftools plots.nb.html` file contains the plots needed for this assessment.
+
 # Working with Genomic Variant Files <img src="Sage_Logo.png" align="right" alt="Sage Logo" width="240" style = "border: none; float: right;">
 
 

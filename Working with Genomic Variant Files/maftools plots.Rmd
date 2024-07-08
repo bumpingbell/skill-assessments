@@ -1,0 +1,63 @@
+---
+title: "Working with Mutation Annotation Format (MAF) files"
+output:
+  html_notebook: 
+    toc: yes
+    toc_float: yes
+    toc_depth: 4
+    code_folding: hide
+---
+
+> This R Notebook contains the plots required for skills assessment.
+
+# Preparation
+```{r}
+library(maftools)
+library(tidyr)
+```
+
+We are analyzing the LGG cohort from TGCA
+```{r}
+# view available TCGA cohorts, check that LGG is there
+tcgaAvailable()
+
+# load the available LGG cohort
+lgg <- tcgaLoad(study = "LGG")
+```
+
+Summary of file: 
+```{r paged.print=FALSE}
+# view a summary of this file
+lgg
+```
+
+# Plots
+## Oncoplot
+An oncoplot of the top five mutated genes
+```{r}
+oncoplot(maf = lgg, top = 5)
+```
+
+## Transition and Transversions
+A boxplot of the transistion-to-transversion ratio.
+```{r}
+lgg.titv <- titv(maf = lgg, plot = FALSE, useSyn = TRUE)
+# plot titv summary
+plotTiTv(res = lgg.titv)
+```
+Summarized data are visualized as a boxplot, showing overall distribution of six different conversions and as a stacked barplot showing fraction of conversions in each sample.
+
+## Mutation Load Against TCGA Cohorts
+Compares mutation burden of input cohort (LGG cohort) against 33 TCGA cohorts.
+```{r message=FALSE, warning=FALSE}
+lgg.mutload <- tcgaCompare(maf = lgg, cohortName = "Input - LGG", 
+                           logscale = TRUE, 
+                           capture_size = 35.8) 
+# keep default capture size as the LGG cohort is also from TGCA
+```
+
+# Session Info
+```{r}
+sessionInfo()
+```
+
