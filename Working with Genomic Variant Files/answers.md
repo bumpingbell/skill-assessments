@@ -2,33 +2,33 @@
 
 Q1: How many positions are found in this region in the VCF file?
 
-A: From the output of `CEU.exon.2010_03.genotypes.vcf.gz 1:1105411-44137860 | wc -l`, the answer is 80.
+A: From the output of `CEU.exon.2010_03.genotypes.vcf.gz 1:1105411-44137860 | wc -l`, the answer is **80**.
 
 - `wc -l` counts the lines of terminal output.
 
 Q2: How many samples are included in the VCF file?
 
-A: From the output of `bcftools query -l CEU.exon.2010_03.genotypes.vcf.gz | wc -l`, there are 90 samples. 
+A: From the output of `bcftools query -l CEU.exon.2010_03.genotypes.vcf.gz | wc -l`, there are **90 samples**. 
 
 - `bcftools query -l, --list-samples` prints the list of samples and exit.
 
 Q3: How many positions are there total in the VCF file?
 
-A: From the output of `bcftools query -f '%POS\n' CEU.exon.2010_03.genotypes.vcf.gz | wc -l`, the answer is 3489.
+A: From the output of `bcftools query -f '%POS\n' CEU.exon.2010_03.genotypes.vcf.gz | wc -l`, the answer is **3489**.
 
 - The `-f` flag specifies the output format. 
 - ps. Example of a query: `bcftools query -f '%CHROM\t%POS\t%REF\t%ALT[\t%SAMPLE=%GT]\n' file.vcf.gz`
 
 Q4: How many positions are there with AC=1? Note that you cannot simply count lines since the output of bcftools filter includes the VCF header lines. You will need to use bcftools query to get this number.
 
-A: From the output of `bcftools filter -i AC=1 CEU.exon.2010_03.genotypes.vcf.gz | bcftools query -f '%POS\n' | wc -l`, the answer is 1075. 
+A: From the output of `bcftools filter -i AC=1 CEU.exon.2010_03.genotypes.vcf.gz | bcftools query -f '%POS\n' | wc -l`, the answer is **1075**. 
 
 - `-i, --include EXPR`: Include only sites for which the expression is true
 - We piped the output of `bcftools filter` into `bcftools query -f '%POS\n'` to count the positions, and subsequently counted the lines.
 
 Q5: What is the ratio of transitions to transversions (ts/tv) in this file?
 
-A: From the output of `bcftools stats CEU.exon.2010_03.genotypes.vcf.gz`, it's 3.47.
+A: From the output of `bcftools stats CEU.exon.2010_03.genotypes.vcf.gz`, it's **3.47**.
 
 ```
 # TSTV, transitions/transversions:
@@ -38,7 +38,7 @@ TSTV	0	2708	781	3.47	2708	781	3.47
 
 Q6: What is the median number of variants per sample in this data set?
 
-A: The median number of variants per sample in this dataset is 28, which is derived from the output of `lgg`: 
+A: The median number of variants per sample in this dataset is **28**, which is derived from the output of `lgg`: 
 
 ```
 An object of class  MAF 
